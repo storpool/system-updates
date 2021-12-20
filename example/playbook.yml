@@ -11,5 +11,15 @@
   gather_facts: true
   become: true
   roles: []
-  tasks: []
+  tasks:
+    - name: Print ansible_distribution
+      debug:
+        var: ansible_distribution
 
+    - name: Print ansible_distribution_major_version
+      debug:
+        var: ansible_distribution_major_version
+  
+    - name: Print ansible_pkg_mgr
+      debug:
+        var: ansible_pkg_mgr

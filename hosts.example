@@ -1,0 +1,13 @@
+# Example of ansible hosts file (inventory)
+
+[all:vars]
+# Global variables
+
+[storpool:vars]
+# StorPool-specific variables
+
+[storpool]
+# Node hostnames and per-node variables
+host1
+host2
+host3
