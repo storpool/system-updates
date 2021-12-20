@@ -1,0 +1,15 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  roles: []
+  tasks: []
+
+- name: Example
+  hosts: storpool
+  gather_facts: true
+  become: true
+  roles: []
+  tasks: []
+
