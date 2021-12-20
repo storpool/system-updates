@@ -1,0 +1,34 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  roles: []
+  tasks: []
+
+- name: Fix "/dev/shm" mounts
+  hosts: storpool
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Add/Update shmfs entry in fstab
+      mount:
+        name: /dev/shm
+        src: none
+        fstype: tmpfs
+        opts: "size=90%,nosuid,nodev,noauto"
+        state: mounted
+    
+    - name: Copy fix-dev-shm script
+      copy:
+        src: files/fix-dev-shm.sh
+        dest: /usr/local/bin/fix-dev-shm
+        mode: preserve
+
+    - name: Run fix-dev-shm script
+      command: /usr/local/bin/fix-dev-shm
+      changed_when: false
+
+  tags:
+    - fix-dev-shm
+
