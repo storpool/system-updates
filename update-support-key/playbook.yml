@@ -1,0 +1,50 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  tasks:
+    - name: Get support_key_with_comment
+      shell: |
+        grep "StorPool Support 2020 SSH key$" /home/tools/support-key.pub
+      register: support_key_with_comment
+      changed_when: false
+
+    - name: Print support_key_with_comment
+      debug:
+        var: support_key_with_comment.stdout
+      when:
+        - support_key_with_comment is defined
+        - support_key_with_comment.stdout is defined
+
+    - name: Get support_key
+      shell: |
+        echo "{{ support_key_with_comment.stdout }}" | cut -d ' ' -f 1,2
+      register: support_key
+      changed_when: false
+      when:
+        - support_key_with_comment is defined
+        - support_key_with_comment.stdout is defined
+
+    - name: Print support_key
+      debug:
+        var: support_key.stdout
+      when:
+        - support_key is defined
+        - support_key.stdout is defined
+
+    - name: Validate support_key
+      shell: |
+        grep "^{{ support_key.stdout }}" /home/tools/support-key.pub
+      register: support_key_validation
+      changed_when: false
+      when:
+        - support_key is defined
+        - support_key.stdout is defined
+
+    - name: Print support_key_validation
+      debug:
+        var: support_key_validation.stdout
+      when:
+        - support_key_validation is defined
+        - support_key_validation.stdout is defined
