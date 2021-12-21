@@ -8,7 +8,7 @@
 
 - name: Fix "/dev/shm" mounts
   hosts: storpool
-  gather_subset: 'min'
+  gather_facts: false
   become: true
   tasks:
     - name: Add/Update shmfs entry in fstab
