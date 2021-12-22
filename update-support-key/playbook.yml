@@ -8,12 +8,12 @@
 
 - name: Update of support key on hosts
   hosts: storpool
-  gather_facts: false
+  gather_subset: 'min'
   become: true
   vars:
     support_pub_key_path: /home/tools/support-key.pub
   tasks:
-    - name: Get support_key_with_comment
+    - name: Extract support_key_with_comment
       shell: |
         grep "StorPool Support 2020 SSH key$" "{{ support_pub_key_path }}"
       register: support_key_with_comment
@@ -32,7 +32,7 @@
           support_key_with_comment.rc == 0
         - support_key_with_comment.stdout is defined
 
-    - name: Get support_key
+    - name: Extract support_key (algo & key only)
       shell: |
         echo "{{ support_key_with_comment.stdout }}" | cut -d ' ' -f 1,2
       register: support_key
@@ -56,7 +56,7 @@
           support_key.rc == 0
         - support_key.stdout is defined
 
-    - name: Validate support_key
+    - name: Validation of support_key by search in key source
       shell: |
         grep "^{{ support_key.stdout }}" "{{ support_pub_key_path }}"
       register: support_key_validation
@@ -69,13 +69,40 @@
           support_key.rc == 0
         - support_key.stdout is defined
 
-    - name: Print support_key validation result
-      debug:
-        var: support_key_validation.stdout
-      delegate_to: localhost
-      run_once: true
+    - name: Attempt to find support_key on hosts
+      shell: |
+        grep "^{{ support_key.stdout }}" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
+      register: support_key_found
+      until: support_key_found is succeeded
+      retries: 5
+      delay: 3
+      ignore_errors: yes
+      changed_when: false
       when:
-        - support_key_validation is defined
-        - support_key_validation.rc is defined and
-          support_key_validation.rc == 0
-        - support_key_validation.stdout is defined
+        - support_key is defined
+        - support_key.rc is defined and
+          support_key.rc == 0
+        - support_key.stdout is defined
+
+    - name: Setup new support_key on hosts
+      shell: |
+        echo "{{ support_key_with_comment.stdout }}" >> "{{ ansible_env.HOME }}/.ssh/authorized_keys"
+      when:
+        - support_key_found is defined
+        - support_key_found.rc is defined and
+          support_key_found.rc == 1
+        - support_key_with_comment.stdout is defined
+
+    - name: Validation of successful setup of new support_key on hosts
+      shell: |
+        grep "^{{ support_key.stdout }}" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
+      register: support_key_validation
+      until: support_key_validation is succeeded
+      retries: 5
+      delay: 3
+      changed_when: false
+      when:
+        - support_key_found is defined
+        - support_key_found.rc is defined and
+          support_key_found.rc == 1
+        - support_key_with_comment.stdout is defined
