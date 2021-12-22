@@ -11,7 +11,7 @@
   gather_subset: 'min'
   become: true
   vars:
-    support_pub_key_path: /home/tools/support-key.pub
+    support_pub_key_path: files/support-key.pub
   tasks:
     - name: Extract support_key_with_comment
       shell: |
@@ -59,7 +59,6 @@
     - name: Validation of support_key by search in key source
       shell: |
         grep "^{{ support_key.stdout }}" "{{ support_pub_key_path }}"
-      register: support_key_validation
       changed_when: false
       delegate_to: localhost
       run_once: true
