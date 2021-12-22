@@ -94,7 +94,7 @@
 
     - name: Validation of successful setup of new support_key on hosts
       shell: |
-        grep "^{{ support_key_with_comment.stdout }}" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
+        grep "^{{ support_key_with_comment.stdout }}$" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
       register: support_key_validation
       until: support_key_validation is succeeded
       retries: 5
