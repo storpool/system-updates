@@ -20,6 +20,17 @@
       delegate_to: localhost
       run_once: true
 
+    - name: Asserts for extract of support_key_with_comment
+      assert:
+        that:
+          - support_key_with_comment.stdout_lines | length == 1
+        fail_msg: "More than one key found in key source file"
+      delegate_to: localhost
+      run_once: true
+      when:
+        - support_key_with_comment is defined
+        - support_key_with_comment.stdout_lines is defined
+
     - name: Extract support_key (algo & key only)
       shell: |
         echo "{{ support_key_with_comment.stdout }}" | cut -d ' ' -f 1,2
@@ -57,6 +68,15 @@
         - support_key.rc is defined and
           support_key.rc == 0
         - support_key.stdout is defined
+
+    - name: Asserts for attempt to find support_key on hosts
+      assert:
+        that:
+          - support_key_found.rc <= 1
+        fail_msg: "Attempt to find support_key on host failed: existance or absence of support_key is not confirmed."
+      when:
+        - support_key_found is defined
+        - support_key_found.rc is defined
 
     - name: Setup new support_key on hosts
       shell: |
