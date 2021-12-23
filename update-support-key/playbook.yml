@@ -49,7 +49,6 @@
     - name: Attempt to find support_key on hosts
       shell: |
         grep "^{{ support_key.stdout }}" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
-      become: true
       register: support_key_found
       ignore_errors: yes
       changed_when: false
@@ -62,7 +61,6 @@
     - name: Setup new support_key on hosts
       shell: |
         echo "{{ support_key_with_comment.stdout }}" >> "{{ ansible_env.HOME }}/.ssh/authorized_keys"
-      become: true
       when:
         - support_key_found is defined
         - support_key_found.rc is defined and
@@ -72,7 +70,6 @@
     - name: Validation of new support_key setup on hosts
       shell: |
         grep "^{{ support_key_with_comment.stdout }}$" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
-      become: true
       register: support_key_validation
       changed_when: false
       when:
