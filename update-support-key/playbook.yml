@@ -20,17 +20,6 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Print support_key_with_comment
-      debug:
-        var: support_key_with_comment.stdout
-      delegate_to: localhost
-      run_once: true
-      when:
-        - support_key_with_comment is defined
-        - support_key_with_comment.rc is defined and
-          support_key_with_comment.rc == 0
-        - support_key_with_comment.stdout is defined
-
     - name: Extract support_key (algo & key only)
       shell: |
         echo "{{ support_key_with_comment.stdout }}" | cut -d ' ' -f 1,2
@@ -44,20 +33,9 @@
           support_key_with_comment.rc == 0
         - support_key_with_comment.stdout is defined
 
-    - name: Print support_key
-      debug:
-        var: support_key.stdout
-      delegate_to: localhost
-      run_once: true
-      when:
-        - support_key is defined
-        - support_key.rc is defined and
-          support_key.rc == 0
-        - support_key.stdout is defined
-
-    - name: Validation of support_key by search in key source
+    - name: Validation of support_key by search in key source file
       shell: |
-        grep "^{{ support_key.stdout }}" "{{ support_pub_key_path }}"
+        if [[ "$(grep "^{{ support_key.stdout }}" "{{ support_pub_key_path }}")" != "{{ support_key_with_comment.stdout }}" ]]; then exit 1; fi
       changed_when: false
       delegate_to: localhost
       run_once: true
@@ -66,6 +44,7 @@
         - support_key.rc is defined and
           support_key.rc == 0
         - support_key.stdout is defined
+        - support_key_with_comment.stdout is defined
 
     - name: Attempt to find support_key on hosts
       shell: |
@@ -90,7 +69,7 @@
           support_key_found.rc == 1
         - support_key_with_comment.stdout is defined
 
-    - name: Validation of successful setup of new support_key on hosts
+    - name: Validation of new support_key setup on hosts
       shell: |
         grep "^{{ support_key_with_comment.stdout }}$" "{{ ansible_env.HOME }}/.ssh/authorized_keys"
       become: true
