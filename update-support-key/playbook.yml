@@ -24,7 +24,7 @@
       assert:
         that:
           - support_key_with_comment.stdout_lines | length == 1
-        fail_msg: "More than one key found in key source file"
+        fail_msg: "More than one key in key source file matched to filter"
       delegate_to: localhost
       run_once: true
       when:
@@ -77,6 +77,14 @@
       when:
         - support_key_found is defined
         - support_key_found.rc is defined
+
+    - name: Create backup copy of authorized_keys on hosts
+      shell: |
+        cp "{{ ansible_env.HOME }}/.ssh/authorized_keys" "{{ ansible_env.HOME }}/.ssh/authorized_keys.bak.$(date +"%Y-%m-%d-%H-%M-%S")"
+      when:
+        - support_key_found is defined
+        - support_key_found.rc is defined and
+          support_key_found.rc == 1
 
     - name: Setup new support_key on hosts
       shell: |
