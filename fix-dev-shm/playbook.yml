@@ -8,6 +8,7 @@
 
 - name: Fix "/dev/shm" mounts
   hosts: storpool
+  ignore_unreachable: yes
   gather_facts: false
   become: true
   tasks:
