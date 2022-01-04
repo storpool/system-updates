@@ -8,10 +8,17 @@
 
 - name: Example
   hosts: storpool
-  gather_facts: true
-  become: true
+  gather_subset: 'min'
   roles: []
   tasks:
+    - name: Print ansible_date_time
+      debug:
+        var: ansible_date_time
+        
+    - name: Print ansible_date_time.iso8601_basic_short
+      debug:
+        msg: "{{ ansible_date_time.iso8601_basic_short }}"
+
     - name: Print ansible_distribution
       debug:
         var: ansible_distribution

@@ -9,7 +9,14 @@
 - name: Ensure new support_key is set
   hosts: storpool
   gather_subset: 'min'
+  vars:
+    date_time_stamp: "{{ ansible_date_time.iso8601_basic_short }}"
   tasks:
+    - name: Create backup copy of authorized_keys
+      shell: |
+        cp "{{ ansible_env.HOME }}/.ssh/authorized_keys" "{{ ansible_env.HOME }}/.ssh/authorized_keys.bak.{{ date_time_stamp }}"
+      changed_when: false
+
     - name: Ensure new support_key is set
       ansible.posix.authorized_key:
         user: "{{ ansible_env.USER }}"
@@ -17,3 +24,13 @@
         key: "{{ lookup('file', 'files/support-key.pub') }}"
         exclusive: false
         manage_dir: false
+      register: support_key_result
+
+    - name: Remove backup copy of authorized_keys if authorized_keys not changed
+      shell: |
+        rm -f "{{ ansible_env.HOME }}/.ssh/authorized_keys.bak.{{ date_time_stamp }}"
+      changed_when: false
+      when:
+        - support_key_result is succeeded
+        - support_key_result.changed is defined
+        - not support_key_result.changed
