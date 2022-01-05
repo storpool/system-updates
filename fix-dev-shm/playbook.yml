@@ -21,9 +21,9 @@
         state: mounted
       register: fstab_result
     
-    - name: Ensure "{{ ansible_env.HOME }}/storpool" directory exists
+    - name: Ensure "{{ ansible_env.HOME }}/fix-dev-shm" directory exists
       file:
-        path: "{{ ansible_env.HOME }}/storpool"
+        path: "{{ ansible_env.HOME }}/fix-dev-shm"
         state: directory
       register: ensure_dir_result
       when:
@@ -35,7 +35,7 @@
     - name: Copy fix-dev-shm script
       copy:
         src: files/fix-dev-shm.sh
-        dest: "{{ ansible_env.HOME }}/storpool/fix-dev-shm"
+        dest: "{{ ansible_env.HOME }}/fix-dev-shm/fix-dev-shm.sh"
         mode: preserve
       register: copy_script_result
       when:
@@ -45,7 +45,7 @@
         - ensure_dir_result is succeeded
 
     - name: Run fix-dev-shm script
-      command: "{{ ansible_env.HOME }}/storpool/fix-dev-shm"
+      command: "{{ ansible_env.HOME }}/fix-dev-shm/fix-dev-shm.sh"
       changed_when: false
       when:
         - ansible_env is defined
