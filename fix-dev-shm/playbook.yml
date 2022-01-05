@@ -8,8 +8,9 @@
 
 - name: Fix "/dev/shm" mounts
   hosts: storpool
-  ignore_unreachable: yes
   gather_facts: false
+  ignore_errors: true
+  ignore_unreachable: true
   tasks:
     - name: Add/Update shmfs entry in fstab
       mount:
