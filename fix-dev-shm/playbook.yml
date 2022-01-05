@@ -8,7 +8,7 @@
 
 - name: Fix "/dev/shm" mounts
   hosts: storpool
-  gather_facts: false
+  gather_subset: 'min'
   ignore_errors: true
   ignore_unreachable: true
   tasks:
@@ -21,20 +21,35 @@
         state: mounted
       register: fstab_result
     
-    - name: Copy fix-dev-shm script
-      copy:
-        src: files/fix-dev-shm.sh
-        dest: /usr/local/bin/fix-dev-shm
-        mode: preserve
-      register: copy_script_result
+    - name: Ensure "{{ ansible_env.HOME }}/storpool" directory exists
+      file:
+        path: "{{ ansible_env.HOME }}/storpool"
+        state: directory
+      register: ensure_dir_result
       when:
+        - ansible_env is defined
+        - ansible_env.HOME is defined
         - fstab_result is defined
         - fstab_result is succeeded
 
+    - name: Copy fix-dev-shm script
+      copy:
+        src: files/fix-dev-shm.sh
+        dest: "{{ ansible_env.HOME }}/storpool/fix-dev-shm"
+        mode: preserve
+      register: copy_script_result
+      when:
+        - ansible_env is defined
+        - ansible_env.HOME is defined
+        - ensure_dir_result is defined
+        - ensure_dir_result is succeeded
+
     - name: Run fix-dev-shm script
-      command: /usr/local/bin/fix-dev-shm
+      command: "{{ ansible_env.HOME }}/storpool/fix-dev-shm"
       changed_when: false
       when:
+        - ansible_env is defined
+        - ansible_env.HOME is defined
         - copy_script_result is defined
         - copy_script_result is succeeded
 
