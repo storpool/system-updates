@@ -19,16 +19,24 @@
         fstype: tmpfs
         opts: "size=90%,nosuid,nodev,noauto"
         state: mounted
+      register: fstab_result
     
     - name: Copy fix-dev-shm script
       copy:
         src: files/fix-dev-shm.sh
         dest: /usr/local/bin/fix-dev-shm
         mode: preserve
+      register: copy_script_result
+      when:
+        - fstab_result is defined
+        - fstab_result is succeeded
 
     - name: Run fix-dev-shm script
       command: /usr/local/bin/fix-dev-shm
       changed_when: false
+      when:
+        - copy_script_result is defined
+        - copy_script_result is succeeded
 
   tags:
     - fix-dev-shm
