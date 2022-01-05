@@ -11,6 +11,7 @@
   gather_subset: 'min'
   ignore_errors: true
   ignore_unreachable: true
+  become: true
   tasks:
     - name: Add/Update shmfs entry in fstab
       mount:
