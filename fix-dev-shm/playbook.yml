@@ -10,7 +10,6 @@
   hosts: storpool
   ignore_unreachable: yes
   gather_facts: false
-  become: true
   tasks:
     - name: Add/Update shmfs entry in fstab
       mount:
