@@ -9,7 +9,6 @@
 - name: Example 1
   hosts: storpool
   gather_subset: 'min'
-  ignore_errors: true
   ignore_unreachable: true
   roles:
     - { role: '../shared/roles/try-become-methods' }

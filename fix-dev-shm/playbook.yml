@@ -9,7 +9,6 @@
 - name: Try become methods
   hosts: storpool
   gather_facts: false
-  ignore_errors: true
   ignore_unreachable: true
   roles:
     - { role: '../shared/roles/try-become-methods' }
