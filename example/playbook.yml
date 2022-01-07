@@ -11,60 +11,9 @@
   gather_subset: 'min'
   ignore_errors: true
   ignore_unreachable: true
+  roles:
+    - { role: '../shared/roles/try-become-methods' }
   tasks:
-    - name: Whoami
-      command: whoami
-      register: whoami_result
-      changed_when: false
-
-    - name: Print whoami_result.stdout
-      debug:
-        var: whoami_result.stdout
-      when:
-        - whoami_result is defined
-        - whoami_result.rc is defined and whoami_result.rc == 0
-        - whoami_result.stdout is defined
-
-    - name: Try sudo become_method
-      command: /bin/true
-      become: true
-      become_method: sudo
-      register: try_sudo_result
-      changed_when: false
-      when:
-        - whoami_result is defined
-        - whoami_result.rc is defined and whoami_result.rc == 0
-        - whoami_result.stdout is defined and whoami_result.stdout != 'root'
-
-    - name: Print try_sudo_result.rc
-      debug:
-        var: try_sudo_result.rc
-      when:
-        - try_sudo_result is defined
-        - try_sudo_result.rc is defined
-    
-    - name: Try su become_method
-      command: /bin/true
-      become: true
-      become_method: su
-      register: try_su_result
-      changed_when: false
-      when:
-        - whoami_result is defined
-        - whoami_result.rc is defined and whoami_result.rc == 0
-        - whoami_result.stdout is defined and whoami_result.stdout != 'root'
-
-    - name: Print try_su_result.rc
-      debug:
-        var: try_su_result.rc
-      when:
-        - try_su_result is defined
-        - try_su_result.rc is defined
-        
-    - name: Print ansible_date_time.iso8601_basic_short
-      debug:
-        msg: "{{ ansible_date_time.iso8601_basic_short }}"
-
     - name: Print ansible_distribution
       debug:
         var: ansible_distribution
@@ -76,17 +25,3 @@
     - name: Print ansible_pkg_mgr
       debug:
         var: ansible_pkg_mgr
-
-- name: Example 2
-  hosts: storpool
-  gather_facts: false
-  ignore_errors: true
-  ignore_unreachable: true
-  tasks:
-    - name: Print whoami_result.stdout
-      debug:
-        var: whoami_result.stdout
-      when:
-        - whoami_result is defined
-        - whoami_result.rc is defined and whoami_result.rc == 0
-        - whoami_result.stdout is defined

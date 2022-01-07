@@ -11,62 +11,8 @@
   gather_facts: false
   ignore_errors: true
   ignore_unreachable: true
-  tasks:
-    - name: Whoami
-      command: whoami
-      register: whoami_result
-      changed_when: false
-      when:
-        - sp_become_flag is not defined
-
-    - name: Setting sp_become_flag fact
-      set_fact:
-        sp_become_flag: "{{ 'true' if (whoami_result is defined and whoami_result is succeeded and whoami_result.stdout is defined and whoami_result.stdout != 'root') else 'false' }}"
-        cacheable: yes
-      when:
-        - sp_become_flag is not defined
-        - whoami_result is defined
-        - whoami_result.rc is defined and whoami_result.rc == 0
-
-    - name: Try sudo method
-      command: /bin/true
-      become: true
-      become_method: sudo
-      register: try_sudo_result
-      changed_when: false
-      when:
-        - sp_become_method is not defined
-        - sp_become_flag is defined
-        - sp_become_flag | bool
-
-    - name: Setting sp_become_method fact (sudo)
-      set_fact:
-        sp_become_method: 'sudo'
-        cacheable: yes
-      when:
-        - sp_become_method is not defined
-        - try_sudo_result is defined
-        - try_sudo_result.rc is defined and try_sudo_result.rc == 0
-    
-    - name: Try su method
-      command: /bin/true
-      become: true
-      become_method: su
-      register: try_su_result
-      changed_when: false
-      when:
-        - sp_become_method is not defined
-        - sp_become_flag is defined
-        - sp_become_flag | bool
-
-    - name: Setting sp_become_method fact (su)
-      set_fact:
-        sp_become_method: 'su'
-        cacheable: yes
-      when:
-        - sp_become_method is not defined
-        - try_su_result is defined
-        - try_su_result.rc is defined and try_su_result.rc == 0
+  roles:
+    - { role: '../shared/roles/try-become-methods' }
 
 - name: Fix "/dev/shm" mounts
   hosts: storpool
