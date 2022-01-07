@@ -38,8 +38,9 @@
         - backup_result.rc is defined and backup_result.rc == 0
 
     - name: Remove backup copy of authorized_keys if authorized_keys not changed
-      shell: |
-        rm -f "{{ ansible_env.HOME }}/.ssh/authorized_keys.bak.{{ date_time_stamp }}"
+      file:
+        path: "{{ ansible_env.HOME }}/.ssh/authorized_keys.bak.{{ date_time_stamp }}"
+        state: absent
       changed_when: false
       when:
         - ansible_env is defined
