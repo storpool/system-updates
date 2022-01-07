@@ -6,12 +6,86 @@
   roles: []
   tasks: []
 
+- name: Try become methods
+  hosts: storpool
+  gather_facts: false
+  ignore_errors: true
+  ignore_unreachable: true
+  tasks:
+    - name: Whoami
+      command: whoami
+      register: whoami_result
+      changed_when: false
+      when:
+        - sp_become_flag is not defined
+
+    - name: Setting sp_become_flag fact
+      set_fact:
+        sp_become_flag: "{{ 'true' if (whoami_result is defined and whoami_result is succeeded and whoami_result.stdout is defined and whoami_result.stdout != 'root') else 'false' }}"
+        cacheable: yes
+      when:
+        - sp_become_flag is not defined
+        - whoami_result is defined
+        - whoami_result.rc is defined and whoami_result.rc == 0
+
+    - name: Try sudo method
+      command: /bin/true
+      become: true
+      become_method: sudo
+      register: try_sudo_result
+      changed_when: false
+      when:
+        - sp_become_method is not defined
+        - sp_become_flag is defined
+        - sp_become_flag | bool
+
+    - name: Setting sp_become_method fact (sudo)
+      set_fact:
+        sp_become_method: 'sudo'
+        cacheable: yes
+      when:
+        - sp_become_method is not defined
+        - try_sudo_result is defined
+        - try_sudo_result.rc is defined and try_sudo_result.rc == 0
+    
+    - name: Try su method
+      command: /bin/true
+      become: true
+      become_method: su
+      register: try_su_result
+      changed_when: false
+      when:
+        - sp_become_method is not defined
+        - sp_become_flag is defined
+        - sp_become_flag | bool
+
+    - name: Setting sp_become_method fact (su)
+      set_fact:
+        sp_become_method: 'su'
+        cacheable: yes
+      when:
+        - sp_become_method is not defined
+        - try_su_result is defined
+        - try_su_result.rc is defined and try_su_result.rc == 0
+
 - name: Fix "/dev/shm" mounts
   hosts: storpool
   gather_subset: 'min'
   ignore_errors: true
   ignore_unreachable: true
+  become: "{{ sp_become_flag | default(false) }}"
+  become_method: "{{ sp_become_method | default('sudo') }}"
   tasks:
+    - name: Print sp_become_flag
+      debug:
+        var: sp_become_flag
+      when: sp_become_flag is defined
+
+    - name: Print sp_become_method
+      debug:
+        var: sp_become_method
+      when: sp_become_method is defined
+
     - name: Add/Update shmfs entry in fstab
       mount:
         name: /dev/shm
@@ -21,9 +95,9 @@
         state: mounted
       register: fstab_result
     
-    - name: Ensure "{{ ansible_env.HOME }}/storpool" directory exists
+    - name: Ensure "{{ ansible_env.HOME }}/fix-dev-shm" directory exists
       file:
-        path: "{{ ansible_env.HOME }}/storpool"
+        path: "{{ ansible_env.HOME }}/fix-dev-shm"
         state: directory
       register: ensure_dir_result
       when:
@@ -35,7 +109,7 @@
     - name: Copy fix-dev-shm script
       copy:
         src: files/fix-dev-shm.sh
-        dest: "{{ ansible_env.HOME }}/storpool/fix-dev-shm"
+        dest: "{{ ansible_env.HOME }}/fix-dev-shm/fix-dev-shm.sh"
         mode: preserve
       register: copy_script_result
       when:
@@ -45,7 +119,7 @@
         - ensure_dir_result is succeeded
 
     - name: Run fix-dev-shm script
-      command: "{{ ansible_env.HOME }}/storpool/fix-dev-shm"
+      command: "{{ ansible_env.HOME }}/fix-dev-shm/fix-dev-shm.sh"
       changed_when: false
       when:
         - ansible_env is defined
