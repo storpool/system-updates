@@ -1,0 +1,61 @@
+---
+- name: List storpool release packages
+  find:
+    paths: "{{ vault_release_dir }}"
+    file_type: file
+    use_regex: yes
+    recurse: yes
+    depth: 2
+    patterns:
+      - '.*-nehalem.tar.gz$'
+      - '.*-amdfam10.tar.gz$'
+  register: list_packages
+  changed_when: false
+
+- name: Create "/tmp/sp_file_list.tmp.{{ date_time_stamp }}"
+  shell: |
+    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/manifest\.json$') | jq -r '.packages | to_entries[] | select(.key != "KEEP") | .value.checksums | keys[]' | sort -u >> "/tmp/sp_file_list.tmp.{{ date_time_stamp }}" 
+  changed_when: false
+  loop: "{{ list_packages.files }}"
+
+- name: Create "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}"
+  shell: |
+    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/remove-files\.txt$') | cut -f 2 | sort -u >> "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}" 
+  changed_when: false
+  loop: "{{ list_packages.files }}"
+
+- name: Create "/tmp/sp_file_list.{{ date_time_stamp }}"
+  shell: |
+    cat "/tmp/sp_file_list.tmp.{{ date_time_stamp }}" | sort -u | sed 's/^/\//' > "/tmp/sp_file_list.{{ date_time_stamp }}"
+  changed_when: false
+
+- name: Create "/tmp/sp_remove_files.{{ date_time_stamp }}"
+  shell: |
+    cat "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}" | sort -u > "/tmp/sp_remove_files.{{ date_time_stamp }}"
+  changed_when: false
+
+- name: Remove "/tmp/sp_file_list.tmp.{{ date_time_stamp }}"
+  file:
+    path: "/tmp/sp_file_list.tmp.{{ date_time_stamp }}"
+    state: absent
+  changed_when: false
+
+- name: Remove "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}"
+  file:
+    path: "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}"
+    state: absent
+  changed_when: false
+
+- name: Fetch "/tmp/sp_file_list.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault" dir on localhost
+  fetch:
+    src: "/tmp/sp_file_list.{{ date_time_stamp }}"
+    dest: /tmp/sp_file_list_from_vault/
+    flat: yes
+  changed_when: false
+
+- name: Fetch "/tmp/sp_remove_files.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault" dir on localhost
+  fetch:
+    src: "/tmp/sp_remove_files.{{ date_time_stamp }}"
+    dest: /tmp/sp_file_list_from_vault/
+    flat: yes
+  changed_when: false

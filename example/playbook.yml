@@ -20,7 +20,9 @@
     - name: Print ansible_distribution_major_version
       debug:
         var: ansible_distribution_major_version
-  
-    - name: Print ansible_pkg_mgr
-      debug:
-        var: ansible_pkg_mgr
+
+- name: Example 2
+  hosts: vault
+  gather_subset: 'min'
+  roles:
+    - { role: '../shared/roles/sp-file-list-from-vault' }
