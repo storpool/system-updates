@@ -1,3 +1,3 @@
 ---
-vault_release_dir: /home/vault/release
+sp_manifest_dir: /usr/lib/storpool/manifest
 date_time_stamp: "{{ ansible_date_time.iso8601_basic_short }}"

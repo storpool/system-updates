@@ -1,0 +1,21 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  tasks: []
+
+- name: Get storpool file list from storpool vault
+  hosts: vault
+  gather_subset: 'min'
+  roles:
+    - { role: '../shared/roles/sp-file-list-from-vault' }
+  tasks: []
+
+- name: Get storpool file lists from storpool nodes
+  hosts: storpool
+  gather_subset: 'min'
+  ignore_unreachable: true
+  roles:
+    - { role: '../shared/roles/sp-file-list-from-node'}
+  tasks: []
