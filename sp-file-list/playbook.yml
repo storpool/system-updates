@@ -5,17 +5,18 @@
   gather_subset: 'min'
   tasks: []
 
-- name: Get storpool file list from storpool vault
+- name: Gather storpool file lists from storpool vault
   hosts: vault
   gather_subset: 'min'
   roles:
     - { role: '../shared/roles/sp-file-list-from-vault' }
   tasks: []
 
-- name: Get storpool file lists from storpool nodes
+- name: Gather storpool file lists from storpool nodes
   hosts: storpool
   gather_subset: 'min'
   ignore_unreachable: true
   roles:
     - { role: '../shared/roles/sp-file-list-from-node'}
+    - { role: '../shared/roles/sp-file-list-diff'}
   tasks: []
