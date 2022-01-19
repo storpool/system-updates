@@ -1,12 +1,20 @@
 ---
-- name: Create "/tmp/sp_file_list_from_node/*/sp_file_list_diff"
-  shell: |
-    for f in /tmp/sp_file_list_from_node/*/sp_file_list
-    do
-      comm -23 /tmp/sp_file_list_from_vault/sp_file_list ${f} > ${f}_diff 
-    done
-  delegate_to: localhost
-  run_once: true
+- name: Copy sp_file_list_from_vault to node
+  copy:
+    src: /tmp/sp_file_list_from_vault/sp_file_list
+    dest: /tmp/sp_file_list_from_vault
+    mode: preserve
+
+- name: Copy sp_remove_files to node
+  copy:
+    src: /tmp/sp_file_list_from_vault/sp_remove_files
+    dest: /tmp/sp_remove_files
+    mode: preserve
+
+- name: Remove "/tmp/sp_file_list_diff" if exists
+  file:
+    path: /tmp/sp_file_list_diff
+    state: absent
   changed_when: false
 
 - name: Remove "/tmp/sp_file_list_diff_found" if exists
@@ -21,11 +29,18 @@
     state: absent
   changed_when: false
 
-- name: Try to find redundant storpool files on node (from sp_file_list_diff)
+- name: Try to find stale or obsolete storpool files on node
   shell: |
-    if [ -f {{ item }} ]; then echo {{ item }} >> /tmp/sp_file_list_diff_found; fi
+    comm -23 /tmp/sp_file_list_from_vault /tmp/sp_file_list > /tmp/sp_file_list_diff
+    while IFS= read -r p
+    do
+      if [ -f $p ]; then echo $p >> /tmp/sp_file_list_diff_found; fi
+    done < /tmp/sp_file_list_diff
+    while IFS= read -r p
+    do
+      if [ -f $p ]; then echo $p >> /tmp/sp_remove_files_found; fi
+    done < /tmp/sp_remove_files
   changed_when: false
-  loop: "{{ lookup('file', '/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_file_list_diff').splitlines() }}"
 
 - name: Check whether file "/tmp/sp_file_list_diff_found" created on node
   shell: |
@@ -34,18 +49,16 @@
   ignore_errors: true
   changed_when: false
 
-- name: Print sp_file_list_diff_found.rc
-  debug:
-    var: sp_file_list_diff_found.rc
+- name: Fetch "/tmp/sp_file_list_diff_found" to "/tmp/sp_file_list_from_node/<inventory_hostname>/sp_file_list_diff_found" on localhost
+  fetch:
+    src: /tmp/sp_file_list_diff_found
+    dest: "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_file_list_diff_found"
+    flat: yes
+  changed_when: false
   when:
     - sp_file_list_diff_found is defined
     - sp_file_list_diff_found.rc is defined
-
-- name: Try to find obsolete storpool files on node (from sp_remove_files)
-  shell: |
-    if [ -f {{ item }} ]; then echo {{ item }} >> /tmp/sp_remove_files_found; fi
-  changed_when: false
-  loop: "{{ lookup('file', '/tmp/sp_file_list_from_vault/sp_remove_files').splitlines() }}"
+    - sp_file_list_diff_found.rc == 1
 
 - name: Check whether file "/tmp/sp_remove_files_found" created on node
   shell: |
@@ -54,9 +67,13 @@
   ignore_errors: true
   changed_when: false
 
-- name: Print sp_remove_files_found.rc
-  debug:
-    var: sp_remove_files_found.rc
+- name: Fetch "/tmp/sp_remove_files_found" to "/tmp/sp_file_list_from_node/<inventory_hostname>/sp_remove_files_found" on localhost
+  fetch:
+    src: /tmp/sp_remove_files_found
+    dest: "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_remove_files_found"
+    flat: yes
+  changed_when: false
   when:
     - sp_remove_files_found is defined
     - sp_remove_files_found.rc is defined
+    - sp_remove_files_found.rc == 1
