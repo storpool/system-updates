@@ -4,7 +4,7 @@
     jq -r '.packages | to_entries[] | .value.checksums | keys[]' {{ sp_manifest_dir }}/*.json | sort -u | sed 's/^/\//' > /tmp/sp_file_list 
   changed_when: false
 
-- name: Fetch "/tmp/sp_file_list" to "/tmp/sp_file_list_from_node/<inventory_hostname>/sp_file_list" on localhost
+- name: Fetch "/tmp/sp_file_list" to localhost
   fetch:
     src: /tmp/sp_file_list
     dest: "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_file_list"

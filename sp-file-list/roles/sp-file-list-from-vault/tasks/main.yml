@@ -1,5 +1,5 @@
 ---
-- name: List storpool release packages
+- name: Find storpool release packages (RedHat family)
   find:
     paths: "{{ vault_release_dir }}"
     file_type: file
@@ -7,70 +7,143 @@
     recurse: yes
     depth: 2
     patterns:
-      - '.*-nehalem.tar.gz$'
-      - '.*-amdfam10.tar.gz$'
-  register: list_packages
+      - '.*-CENTOS.*-nehalem.tar.gz$'
+      - '.*-CENTOS.*-amdfam10.tar.gz$'
+      - '.*-RHEL.*-nehalem.tar.gz$'
+      - '.*-RHEL.*-amdfam10.tar.gz$'
+      - '.*-ALMA.*-nehalem.tar.gz$'
+      - '.*-ALMA.*-amdfam10.tar.gz$'
+      - '.*-ROCKY.*-nehalem.tar.gz$'
+      - '.*-ROCKY.*-amdfam10.tar.gz$'
+      - '.*-ORACLE.*-nehalem.tar.gz$'
+      - '.*-ORACLE.*-amdfam10.tar.gz$'
+  register: list_packages_redhat
   changed_when: false
 
-- name: Create "/tmp/sp_file_list.tmp.{{ date_time_stamp }}"
+- name: Print number of available packages (RedHat family)
+  debug:
+    var: list_packages_redhat.files | length
+  when:
+    - list_packages_redhat is defined
+    - list_packages_redhat.files is defined
+
+- name: Find storpool release packages (Debian family)
+  find:
+    paths: "{{ vault_release_dir }}"
+    file_type: file
+    use_regex: yes
+    recurse: yes
+    depth: 2
+    patterns:
+      - '.*-DEBIAN.*-nehalem.tar.gz$'
+      - '.*-DEBIAN.*-amdfam10.tar.gz$'
+      - '.*-UBUNTU.*-nehalem.tar.gz$'
+      - '.*-UBUNTU.*-amdfam10.tar.gz$'
+  register: list_packages_debian
+  changed_when: false
+
+- name: Print number of available packages (Debian family)
+  debug:
+    var: list_packages_debian.files | length
+  when:
+    - list_packages_debian is defined
+    - list_packages_debian.files is defined
+
+- name: Create "/tmp/sp_file_list_redhat.tmp.{{ date_time_stamp }}"
   shell: |
-    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/manifest\.json$') | jq -r '.packages | to_entries[] | select(.key != "KEEP") | .value.checksums | keys[]' | sort -u >> "/tmp/sp_file_list.tmp.{{ date_time_stamp }}" 
+    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/manifest\.json$') | jq -r '.packages | to_entries[] | select(.key != "KEEP") | .value.checksums | keys[]' | sort -u >> "/tmp/sp_file_list_redhat.tmp.{{ date_time_stamp }}" 
   changed_when: false
-  loop: "{{ list_packages.files }}"
+  loop: "{{ list_packages_redhat.files }}"
 
-- name: Create "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}"
+- name: Create "/tmp/sp_file_list_debian.tmp.{{ date_time_stamp }}"
   shell: |
-    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/remove-files\.txt$') | cut -f 2 | sort -u >> "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}" 
+    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/manifest\.json$') | jq -r '.packages | to_entries[] | select(.key != "KEEP") | .value.checksums | keys[]' | sort -u >> "/tmp/sp_file_list_debian.tmp.{{ date_time_stamp }}" 
   changed_when: false
-  loop: "{{ list_packages.files }}"
+  loop: "{{ list_packages_debian.files }}"
 
-- name: Create "/tmp/sp_file_list.{{ date_time_stamp }}"
+- name: Create "/tmp/sp_remove_files_redhat.tmp.{{ date_time_stamp }}"
   shell: |
-    cat "/tmp/sp_file_list.tmp.{{ date_time_stamp }}" | sort -u | sed 's/^/\//' > "/tmp/sp_file_list.{{ date_time_stamp }}"
+    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/remove-files\.txt$') | cut -f 2 | sort -u >> "/tmp/sp_remove_files_redhat.tmp.{{ date_time_stamp }}" 
   changed_when: false
+  loop: "{{ list_packages_redhat.files }}"
 
-- name: Create "/tmp/sp_remove_files.{{ date_time_stamp }}"
+- name: Create "/tmp/sp_remove_files_debian.tmp.{{ date_time_stamp }}"
   shell: |
-    cat "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}" | sort -u > "/tmp/sp_remove_files.{{ date_time_stamp }}"
+    tar -xOf "{{ item.path }}" $(tar -tf "{{ item.path }}" | grep -e '^[^/]*/remove-files\.txt$') | cut -f 2 | sort -u >> "/tmp/sp_remove_files_debian.tmp.{{ date_time_stamp }}" 
   changed_when: false
+  loop: "{{ list_packages_debian.files }}"
 
-- name: Remove "/tmp/sp_file_list.tmp.{{ date_time_stamp }}"
+- name: Create "/tmp/sp_file_list_{{ item }}.{{ date_time_stamp }}"
+  shell: |
+    cat "/tmp/sp_file_list_{{ item }}.tmp.{{ date_time_stamp }}" | sort -u | sed 's/^/\//' > "/tmp/sp_file_list_{{ item }}.{{ date_time_stamp }}"
+  changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
+
+- name: Create "/tmp/sp_remove_files_{{ item }}.{{ date_time_stamp }}"
+  shell: |
+    cat "/tmp/sp_remove_files_{{ item }}.tmp.{{ date_time_stamp }}" | sort -u > "/tmp/sp_remove_files_{{ item }}.{{ date_time_stamp }}"
+  changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
+
+- name: Remove "/tmp/sp_file_list_{{ item }}.tmp.{{ date_time_stamp }}"
   file:
-    path: "/tmp/sp_file_list.tmp.{{ date_time_stamp }}"
+    path: "/tmp/sp_file_list_{{ item }}.tmp.{{ date_time_stamp }}"
     state: absent
   changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
 
-- name: Remove "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}"
+- name: Remove "/tmp/sp_remove_files_{{ item }}.tmp.{{ date_time_stamp }}"
   file:
-    path: "/tmp/sp_remove_files.tmp.{{ date_time_stamp }}"
+    path: "/tmp/sp_remove_files_{{ item }}.tmp.{{ date_time_stamp }}"
     state: absent
   changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
 
-- name: Fetch "/tmp/sp_file_list.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault" dir on localhost
+- name: Fetch "/tmp/sp_file_list_{{ item }}.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault" dir on localhost
   fetch:
-    src: "/tmp/sp_file_list.{{ date_time_stamp }}"
+    src: "/tmp/sp_file_list_{{ item }}.{{ date_time_stamp }}"
     dest: /tmp/sp_file_list_from_vault/
     flat: yes
   changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
 
-- name: Copy "/tmp/sp_file_list_from_vault/sp_file_list.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault/sp_file_list" on localhost
+- name: Copy "/tmp/sp_file_list_from_vault/sp_file_list_{{ item }}.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault/sp_file_list_{{ item }}" on localhost
   copy:
-    src: "/tmp/sp_file_list_from_vault/sp_file_list.{{ date_time_stamp }}"
-    dest: /tmp/sp_file_list_from_vault/sp_file_list
+    src: "/tmp/sp_file_list_from_vault/sp_file_list_{{ item }}.{{ date_time_stamp }}"
+    dest: "/tmp/sp_file_list_from_vault/sp_file_list_{{ item }}"
   delegate_to: localhost
   changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
 
-- name: Fetch "/tmp/sp_remove_files.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault" dir on localhost
+- name: Fetch "/tmp/sp_remove_files_{{ item }}.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault" dir on localhost
   fetch:
-    src: "/tmp/sp_remove_files.{{ date_time_stamp }}"
+    src: "/tmp/sp_remove_files_{{ item }}.{{ date_time_stamp }}"
     dest: /tmp/sp_file_list_from_vault/
     flat: yes
   changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'
 
-- name: Copy "/tmp/sp_file_list_from_vault/sp_remove_files.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault/sp_remove_files" on localhost
+- name: Copy "/tmp/sp_file_list_from_vault/sp_remove_files_{{ item }}.{{ date_time_stamp }}" to "/tmp/sp_file_list_from_vault/sp_remove_files_{{ item }}" on localhost
   copy:
-    src: "/tmp/sp_file_list_from_vault/sp_remove_files.{{ date_time_stamp }}"
-    dest: /tmp/sp_file_list_from_vault/sp_remove_files
+    src: "/tmp/sp_file_list_from_vault/sp_remove_files_{{ item }}.{{ date_time_stamp }}"
+    dest: "/tmp/sp_file_list_from_vault/sp_remove_files_{{ item }}"
   delegate_to: localhost
   run_once: true
   changed_when: false
+  loop:
+    - 'redhat'
+    - 'debian'

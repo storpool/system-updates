@@ -1,15 +1,39 @@
 ---
-- name: Copy sp_file_list_from_vault to node
+- name: Copy sp_file_list_from_vault to node (RedHat family)
   copy:
-    src: /tmp/sp_file_list_from_vault/sp_file_list
+    src: /tmp/sp_file_list_from_vault/sp_file_list_redhat
     dest: /tmp/sp_file_list_from_vault
     mode: preserve
+  when:
+    - ansible_os_family == "RedHat" or
+      ansible_os_family == "AlmaLinux" or
+      ansible_os_family == "Rocky"
 
-- name: Copy sp_remove_files to node
+- name: Copy sp_file_list_from_vault to node (Debian family)
   copy:
-    src: /tmp/sp_file_list_from_vault/sp_remove_files
+    src: /tmp/sp_file_list_from_vault/sp_file_list_debian
+    dest: /tmp/sp_file_list_from_vault
+    mode: preserve
+  when:
+    - ansible_os_family == "Debian"
+
+- name: Copy sp_remove_files to node (RedHat family)
+  copy:
+    src: /tmp/sp_file_list_from_vault/sp_remove_files_redhat
     dest: /tmp/sp_remove_files
     mode: preserve
+  when:
+    - ansible_os_family == "RedHat" or
+      ansible_os_family == "AlmaLinux" or
+      ansible_os_family == "Rocky"
+
+- name: Copy sp_remove_files to node (Debian family)
+  copy:
+    src: /tmp/sp_file_list_from_vault/sp_remove_files_debian
+    dest: /tmp/sp_remove_files
+    mode: preserve
+  when:
+    - ansible_os_family == "Debian"
 
 - name: Remove "/tmp/sp_file_list_diff" if exists
   file:
@@ -49,12 +73,21 @@
   ignore_errors: true
   changed_when: false
 
-- name: Fetch "/tmp/sp_file_list_diff_found" to "/tmp/sp_file_list_from_node/<inventory_hostname>/sp_file_list_diff_found" on localhost
+- name: Fetch "/tmp/sp_file_list_diff_found" to localhost
   fetch:
     src: /tmp/sp_file_list_diff_found
     dest: "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_file_list_diff_found"
     flat: yes
   changed_when: false
+  when:
+    - sp_file_list_diff_found is defined
+    - sp_file_list_diff_found.rc is defined
+    - sp_file_list_diff_found.rc == 1
+
+- name: Print path to sp_file_list_diff_found
+  debug:
+    msg:
+    - "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_file_list_diff_found"
   when:
     - sp_file_list_diff_found is defined
     - sp_file_list_diff_found.rc is defined
@@ -67,12 +100,21 @@
   ignore_errors: true
   changed_when: false
 
-- name: Fetch "/tmp/sp_remove_files_found" to "/tmp/sp_file_list_from_node/<inventory_hostname>/sp_remove_files_found" on localhost
+- name: Fetch "/tmp/sp_remove_files_found" to localhost
   fetch:
     src: /tmp/sp_remove_files_found
     dest: "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_remove_files_found"
     flat: yes
   changed_when: false
+  when:
+    - sp_remove_files_found is defined
+    - sp_remove_files_found.rc is defined
+    - sp_remove_files_found.rc == 1
+
+- name: Print path to sp_remove_files_found
+  debug:
+    msg:
+    - "/tmp/sp_file_list_from_node/{{ inventory_hostname }}/sp_remove_files_found"
   when:
     - sp_remove_files_found is defined
     - sp_remove_files_found.rc is defined
