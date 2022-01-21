@@ -11,16 +11,23 @@
   vars_files:
     - vars/main.yml 
   roles:
-    - { role: 'roles/sp-file-list-from-vault' }
+    - role: 'roles/sp-file-list-from-vault'
+      tags:
+        - sp-file-list-from-vault
   tasks: []
 
 - name: Gather storpool file lists from storpool nodes
   hosts: storpool
   gather_subset: 'min'
+  ignore_errors: true
   ignore_unreachable: true
   vars_files:
     - vars/main.yml
   roles:
-    - { role: 'roles/sp-file-list-from-node'}
-    - { role: 'roles/sp-file-list-diff'}
+    - role: 'roles/sp-file-list-from-node'
+      tags:
+        - sp-file-list-from-node
+    - role: 'roles/sp-file-list-diff'
+      tags:
+        - sp-file-list-diff
   tasks: []

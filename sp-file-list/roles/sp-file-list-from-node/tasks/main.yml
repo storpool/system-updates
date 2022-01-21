@@ -3,6 +3,7 @@
   shell: |
     jq -r '.packages | to_entries[] | .value.checksums | keys[]' {{ sp_manifest_dir }}/*.json | sort -u | sed 's/^/\//' > /tmp/sp_file_list 
   changed_when: false
+  register: create_sp_file_list_result
 
 - name: Fetch "/tmp/sp_file_list" to localhost
   fetch:
@@ -10,3 +11,5 @@
     dest: "{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_file_list"
     flat: yes
   changed_when: false
+  when:
+    - create_sp_file_list_result is succeeded
