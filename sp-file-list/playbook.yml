@@ -8,6 +8,8 @@
 - name: Gather storpool file lists from storpool vault
   hosts: vault
   gather_subset: 'min'
+  vars_files:
+    - vars/main.yml 
   roles:
     - { role: 'roles/sp-file-list-from-vault' }
   tasks: []
@@ -16,6 +18,8 @@
   hosts: storpool
   gather_subset: 'min'
   ignore_unreachable: true
+  vars_files:
+    - vars/main.yml
   roles:
     - { role: 'roles/sp-file-list-from-node'}
     - { role: 'roles/sp-file-list-diff'}
