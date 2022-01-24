@@ -92,6 +92,17 @@
     - sp_stale_files_found.rc is defined
     - sp_stale_files_found.rc == 1
 
+- name: Remove "sp_stale_files_found" on localhost if exists
+  file:
+    path: "{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found"
+    state: absent
+  delegate_to: localhost
+  changed_when: false
+  when:
+    - sp_stale_files_found is defined
+    - sp_stale_files_found.rc is defined
+    - sp_stale_files_found.rc == 0
+
 - name: Fill "{{ sp_file_list_from_node_dir }}/sp_stale_files_found.hosts" on localhost
   shell: |
     echo "{{ inventory_hostname }}" >> "{{ sp_file_list_from_node_dir }}/sp_stale_files_found.hosts"
