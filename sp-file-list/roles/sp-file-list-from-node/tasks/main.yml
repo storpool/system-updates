@@ -1,4 +1,13 @@
 ---
+- name: Remove "{{ sp_file_list_from_node_dir }}/sp_stale_files_found.hosts" on localhost if exists
+  file:
+    path: "{{ sp_file_list_from_node_dir }}/sp_stale_files_found.hosts"
+    state: absent
+  delegate_to: localhost
+  run_once: true
+  ignore_errors: false
+  changed_when: false
+
 - name: Create "/tmp/sp_file_list"
   shell: |
     jq -r '.packages | to_entries[] | .value.checksums | keys[]' {{ sp_manifest_dir }}/*.json | sort -u | sed 's/^/\//' > /tmp/sp_file_list 
@@ -13,3 +22,81 @@
   changed_when: false
   when:
     - create_sp_file_list_result is succeeded
+
+- name: Copy sp_file_list_from_vault to node (RedHat family)
+  copy:
+    src: "{{ sp_file_list_from_vault_dir }}/sp_file_list_redhat"
+    dest: /tmp/sp_file_list_from_vault
+    mode: preserve
+  register: copy_result
+  when:
+    - create_sp_file_list_result is succeeded
+    - ansible_os_family is defined
+    - ansible_os_family == "RedHat" or
+      ansible_os_family == "AlmaLinux" or
+      ansible_os_family == "Rocky"
+
+- name: Copy sp_file_list_from_vault to node (Debian family)
+  copy:
+    src: "{{ sp_file_list_from_vault_dir }}/sp_file_list_debian"
+    dest: /tmp/sp_file_list_from_vault
+    mode: preserve
+  register: copy_result
+  when:
+    - create_sp_file_list_result is succeeded
+    - ansible_os_family is defined
+    - ansible_os_family == "Debian"
+
+- name: Remove temp files on node if exist
+  file:
+    path: "{{ item }}"
+    state: absent
+  register: remove_result
+  changed_when: false
+  loop:
+    - '/tmp/sp_file_list_diff'
+    - '/tmp/sp_stale_files_found'
+  when:
+    - copy_result is succeeded
+
+- name: Try to find stale storpool files on node
+  shell: |
+    comm -23 /tmp/sp_file_list_from_vault /tmp/sp_file_list > /tmp/sp_file_list_diff
+    while IFS= read -r p
+    do
+      if [ -f $p ]; then echo $p >> /tmp/sp_stale_files_found; fi
+    done < /tmp/sp_file_list_diff
+  register: try_to_find_result
+  changed_when: false
+  when:
+    - remove_result is succeeded
+
+- name: Check whether file "/tmp/sp_stale_files_found" created on node
+  shell: |
+    if [ -f /tmp/sp_stale_files_found ]; then exit 1; fi
+  register: sp_stale_files_found
+  ignore_errors: true
+  changed_when: false
+  when:
+    - try_to_find_result is succeeded
+
+- name: Fetch "/tmp/sp_stale_files_found" to localhost
+  fetch:
+    src: /tmp/sp_stale_files_found
+    dest: "{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found"
+    flat: yes
+  when:
+    - sp_stale_files_found is defined
+    - sp_stale_files_found.rc is defined
+    - sp_stale_files_found.rc == 1
+
+- name: Fill "{{ sp_file_list_from_node_dir }}/sp_stale_files_found.hosts" on localhost
+  shell: |
+    echo "{{ inventory_hostname }}" >> "{{ sp_file_list_from_node_dir }}/sp_stale_files_found.hosts"
+  delegate_to: localhost
+  ignore_errors: false
+  changed_when: false
+  when:
+    - sp_stale_files_found is defined
+    - sp_stale_files_found.rc is defined
+    - sp_stale_files_found.rc == 1

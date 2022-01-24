@@ -27,7 +27,4 @@
     - role: 'roles/sp-file-list-from-node'
       tags:
         - sp-file-list-from-node
-    - role: 'roles/sp-file-list-diff'
-      tags:
-        - sp-file-list-diff
   tasks: []
