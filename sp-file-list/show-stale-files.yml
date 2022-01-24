@@ -1,0 +1,31 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  tasks: []
+
+- name: Show found stale files
+  hosts: storpool
+  gather_facts: false
+  ignore_errors: true
+  ignore_unreachable: true
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Check whether file "{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found" exists
+      shell: |
+        if [ -f {{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found ]; then exit 1; fi
+      register: sp_stale_files_found
+      delegate_to: localhost
+      changed_when: false
+
+    - name: Show found stale files
+      debug:
+        msg: "{{ item }}"
+      delegate_to: localhost
+      loop: >
+        {{ lookup('file', '{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
+        if sp_stale_files_found is defined and
+        sp_stale_files_found.rc is defined and
+        sp_stale_files_found.rc == 1 else [] }}
