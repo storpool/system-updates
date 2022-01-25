@@ -1,0 +1,8 @@
+# Example of ansible hosts file (inventory)
+[vault]
+vault_host ansible_user=root
+
+[storpool]
+host1
+host2
+host3
