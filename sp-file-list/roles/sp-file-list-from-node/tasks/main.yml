@@ -10,7 +10,7 @@
 
 - name: Create "/tmp/sp_file_list"
   shell: |
-    jq -r '.packages | to_entries[] | .value.checksums | keys[]' {{ sp_manifest_dir }}/*.json | sort -u | sed 's/^/\//' > /tmp/sp_file_list 
+    jq -r '.packages | to_entries[] | .value.checksums | keys[]' {{ sp_manifest_dir }}/*.json | sed 's/^/\//' | sort -u > /tmp/sp_file_list 
   changed_when: false
   register: create_sp_file_list_result
 
