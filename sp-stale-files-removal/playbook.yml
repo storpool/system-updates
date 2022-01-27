@@ -1,0 +1,82 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  tasks: []
+
+- name: Try become methods
+  hosts: storpool
+  gather_facts: false
+  ignore_unreachable: true
+  roles:
+    - { role: '../shared/roles/try-become-methods' }
+
+- name: Remove stale files
+  hosts: storpool
+  gather_facts: false
+  ignore_unreachable: true
+  become_method: "{{ sp_become_method | default('sudo') }}"
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Check whether file "{{ sp_stale_files_inv_dir }}/<inventory_hostname>/sp_stale_files_found" exists
+      shell: |
+        if [ -f {{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found ]; then exit 1; fi
+      register: sp_stale_files_found
+      ignore_errors: true
+      delegate_to: localhost
+      changed_when: false
+
+    - name: Print sp_become_flag
+      debug:
+        var: sp_become_flag
+      when:
+        - sp_become_flag is defined
+        - sp_stale_files_found is defined
+        - sp_stale_files_found.rc is defined
+        - sp_stale_files_found.rc == 1
+
+    - name: Print sp_become_method
+      debug:
+        var: sp_become_method
+      when:
+        - sp_become_method is defined
+        - sp_stale_files_found is defined
+        - sp_stale_files_found.rc is defined
+        - sp_stale_files_found.rc == 1
+
+    - name: Show stale files per node
+      debug:
+        var: item
+      delegate_to: localhost
+      loop: >
+        {{ lookup('file', '{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
+        if sp_stale_files_found is defined and
+        sp_stale_files_found.rc is defined and
+        sp_stale_files_found.rc == 1 else [] }}
+      when:
+        - sp_stale_files_found is defined
+        - sp_stale_files_found.rc is defined
+        - sp_stale_files_found.rc == 1
+
+    - name: Confirm removal of stale files by the list above
+      pause:
+        prompt: "\nPlease, confirm the list of stale files above\n\nPress Enter to Confirm\nor Ctrl-C,A to Refuse and Abort"
+      delegate_to: localhost
+
+    - name: Simulate removal of stale files on node
+      file:
+        path: "{{ item }}"
+        state: file
+      ignore_errors: true
+      become: "{{ sp_become_flag | default(false) }}"
+      loop: >
+        {{ lookup('file', '{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
+        if sp_stale_files_found is defined and
+        sp_stale_files_found.rc is defined and
+        sp_stale_files_found.rc == 1 else [] }}  
+      when:
+        - sp_stale_files_found is defined
+        - sp_stale_files_found.rc is defined
+        - sp_stale_files_found.rc == 1
