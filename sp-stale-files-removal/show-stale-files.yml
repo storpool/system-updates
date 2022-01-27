@@ -13,19 +13,19 @@
   vars_files:
     - vars/main.yml
   tasks:
-    - name: Check whether file "{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found" exists
+    - name: Check whether file "{{ sp_stale_files_inv_dir }}/<inventory_hostname>/sp_stale_files_found" exists
       shell: |
-        if [ -f {{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found ]; then exit 1; fi
+        if [ -f {{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found ]; then exit 1; fi
       register: sp_stale_files_found
       delegate_to: localhost
       changed_when: false
 
-    - name: Show found stale files per node
+    - name: Show stale files per node
       debug:
         var: item
       delegate_to: localhost
       loop: >
-        {{ lookup('file', '{{ sp_file_list_from_node_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
+        {{ lookup('file', '{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
         if sp_stale_files_found is defined and
         sp_stale_files_found.rc is defined and
         sp_stale_files_found.rc == 1 else [] }}
