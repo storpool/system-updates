@@ -3,34 +3,15 @@
 - name: Gather localhost's facts
   hosts: localhost
   gather_subset: 'min'
-  roles: []
   tasks: []
-
-- name: Try become methods
-  hosts: storpool
-  gather_facts: false
-  ignore_unreachable: true
-  roles:
-    - { role: '../shared/roles/try-become-methods' }
 
 - name: Fix "/dev/shm" mounts
   hosts: storpool
   gather_subset: 'min'
   ignore_errors: true
   ignore_unreachable: true
-  become: "{{ sp_become_flag | default(false) }}"
-  become_method: "{{ sp_become_method | default('sudo') }}"
+  become: "{{ ansible_effective_user_id != 0 }}"
   tasks:
-    - name: Print sp_become_flag
-      debug:
-        var: sp_become_flag
-      when: sp_become_flag is defined
-
-    - name: Print sp_become_method
-      debug:
-        var: sp_become_method
-      when: sp_become_method is defined
-
     - name: Add/Update shmfs entry in fstab
       mount:
         name: /dev/shm
