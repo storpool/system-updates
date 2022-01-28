@@ -5,18 +5,10 @@
   gather_subset: 'min'
   tasks: []
 
-- name: Try become methods
-  hosts: storpool
-  gather_facts: false
-  ignore_unreachable: true
-  roles:
-    - { role: '../shared/roles/try-become-methods' }
-
 - name: Remove stale files
   hosts: storpool
-  gather_facts: false
+  gather_subset: 'min'
   ignore_unreachable: true
-  become_method: "{{ sp_become_method | default('sudo') }}"
   vars_files:
     - vars/main.yml
   tasks:
@@ -27,24 +19,6 @@
       ignore_errors: true
       delegate_to: localhost
       changed_when: false
-
-    - name: Print sp_become_flag
-      debug:
-        var: sp_become_flag
-      when:
-        - sp_become_flag is defined
-        - sp_stale_files_found is defined
-        - sp_stale_files_found.rc is defined
-        - sp_stale_files_found.rc == 1
-
-    - name: Print sp_become_method
-      debug:
-        var: sp_become_method
-      when:
-        - sp_become_method is defined
-        - sp_stale_files_found is defined
-        - sp_stale_files_found.rc is defined
-        - sp_stale_files_found.rc == 1
 
     - name: Show stale files per node
       debug:
@@ -70,7 +44,7 @@
         path: "{{ item }}"
         state: file
       ignore_errors: true
-      become: "{{ sp_become_flag | default(false) }}"
+      become: "{{ ansible_effective_user_id != 0 }}"
       loop: >
         {{ lookup('file', '{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
         if sp_stale_files_found is defined and
