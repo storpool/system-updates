@@ -1,21 +1,4 @@
 ---
-- name: Whoami
-  command: whoami
-  register: whoami_result
-  changed_when: false
-  ignore_errors: true
-  when:
-    - sp_become_flag is not defined
-
-- name: Setting sp_become_flag fact
-  set_fact:
-    sp_become_flag: "{{ 'true' if (whoami_result is defined and whoami_result.stdout is defined and whoami_result.stdout != 'root') else 'false' }}"
-    cacheable: yes
-  when:
-    - sp_become_flag is not defined
-    - whoami_result is defined
-    - whoami_result.rc is defined and whoami_result.rc == 0
-
 - name: Try sudo method
   command: /bin/true
   become: true
@@ -25,8 +8,7 @@
   ignore_errors: true
   when:
     - sp_become_method is not defined
-    - sp_become_flag is defined
-    - sp_become_flag | bool
+    - ansible_effective_user_id != 0
 
 - name: Setting sp_become_method fact (sudo)
   set_fact:
@@ -46,8 +28,7 @@
   ignore_errors: true
   when:
     - sp_become_method is not defined
-    - sp_become_flag is defined
-    - sp_become_flag | bool
+    - ansible_effective_user_id != 0
 
 - name: Setting sp_become_method fact (su)
   set_fact:
