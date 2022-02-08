@@ -1,0 +1,8 @@
+# Example of ansible hosts file (inventory)
+[storpool:vars]
+remove_sp_stale_files=False
+
+[storpool]
+host1
+host2
+host3

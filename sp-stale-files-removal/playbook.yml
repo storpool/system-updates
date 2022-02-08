@@ -20,6 +20,11 @@
       delegate_to: localhost
       changed_when: false
 
+    - name: Show remove_sp_stale_files
+      debug:
+        var: remove_sp_stale_files
+      delegate_to: localhost
+      
     - name: Show stale files per node
       debug:
         var: item
@@ -39,10 +44,10 @@
         prompt: "\nPlease, confirm the list of stale files above\n\nPress Enter to Confirm\nor Ctrl-C,A to Refuse and Abort"
       delegate_to: localhost
 
-    - name: Simulate removal of stale files on node
+    - name: "{{ 'Remove stale files on node' if remove_sp_stale_files is defined and remove_sp_stale_files | bool else 'Simulate removal of stale files on node' }}"
       file:
         path: "{{ item }}"
-        state: file
+        state: "{{ 'absent' if remove_sp_stale_files is defined and remove_sp_stale_files | bool else 'file' }}"
       ignore_errors: true
       become: "{{ ansible_effective_user_id != 0 }}"
       loop: >
