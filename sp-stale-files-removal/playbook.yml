@@ -13,14 +13,12 @@
     - vars/main.yml
   tasks:
     - name: Check whether file "{{ sp_stale_files_inv_dir }}/<inventory_hostname>/sp_stale_files_found" exists
-      shell: |
-        if [ -f {{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found ]; then exit 1; fi
+      stat:
+        path: "{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found"
       register: sp_stale_files_found
-      ignore_errors: true
       delegate_to: localhost
-      changed_when: false
 
-    - name: Show remove_sp_stale_files
+    - name: Show remove_sp_stale_files flag
       debug:
         var: remove_sp_stale_files
       delegate_to: localhost
@@ -31,13 +29,9 @@
       delegate_to: localhost
       loop: >
         {{ lookup('file', '{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
-        if sp_stale_files_found is defined and
-        sp_stale_files_found.rc is defined and
-        sp_stale_files_found.rc == 1 else [] }}
+        if sp_stale_files_found.stat.exists else [] }}
       when:
-        - sp_stale_files_found is defined
-        - sp_stale_files_found.rc is defined
-        - sp_stale_files_found.rc == 1
+        - sp_stale_files_found.stat.exists
 
     - name: Confirm removal of stale files by the list above
       pause:
@@ -52,10 +46,6 @@
       become: "{{ ansible_effective_user_id != 0 }}"
       loop: >
         {{ lookup('file', '{{ sp_stale_files_inv_dir }}/{{ inventory_hostname }}/sp_stale_files_found').splitlines()
-        if sp_stale_files_found is defined and
-        sp_stale_files_found.rc is defined and
-        sp_stale_files_found.rc == 1 else [] }}  
+        if sp_stale_files_found.stat.exists else [] }} 
       when:
-        - sp_stale_files_found is defined
-        - sp_stale_files_found.rc is defined
-        - sp_stale_files_found.rc == 1
+        - sp_stale_files_found.stat.exists
