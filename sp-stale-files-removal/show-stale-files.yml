@@ -8,7 +8,6 @@
 - name: Show found stale files
   hosts: storpool
   gather_facts: false
-  ignore_errors: true
   ignore_unreachable: true
   vars_files:
     - vars/main.yml
