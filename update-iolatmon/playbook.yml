@@ -46,6 +46,7 @@
       shell: "{{ ansible_env.HOME }}/update-iolatmon/storpool_iolatmon/install.sh"
       register: install_result
       changed_when: false
+      become: "{{ ansible_effective_user_id != 0 }}"
       when:
         - ansible_facts.services['storpool_iolatmon.service'] is defined
         - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
@@ -57,6 +58,7 @@
       command: /usr/sbin/storpool_iolatmond --volumes-report
       changed_when: false
       register: volumes_report_result
+      become: "{{ ansible_effective_user_id != 0 }}"
       when:
         - ansible_facts.services['storpool_iolatmon.service'] is defined
         - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
@@ -80,6 +82,7 @@
         {{ volumes_report_result.stdout }}
       changed_when: false
       register: volumes_creation_result
+      become: "{{ ansible_effective_user_id != 0 }}"
       when:
         - ansible_facts.services['storpool_iolatmon.service'] is defined
         - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
@@ -90,6 +93,7 @@
         name: storpool_iolatmon
         enabled: true
         state: started
+      become: "{{ ansible_effective_user_id != 0 }}"
       when:
         - ansible_facts.services['storpool_iolatmon.service'] is defined
         - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
