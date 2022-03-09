@@ -1,81 +1,67 @@
 #!/usr/bin/env ansible-playbook
 ---
-- name: Gather localhost's facts
-  hosts: localhost
-  gather_subset: 'min'
-  tasks: []
-
-- name: Update iolatmon on storpool nodes
+- name: Selection of nodes with storpool_iolatmon service enabled
   hosts: storpool
+  gather_subset: 'min'
+  ignore_unreachable: true
+  tasks:
+    - name: Populate service facts
+      service_facts:
+
+    - name: Add host to group 'storpool_iolatmon'
+      add_host:
+        name: "{{ inventory_hostname }}"
+        groups:
+          - storpool_iolatmon
+      when:
+        - ansible_facts.services['storpool_iolatmon.service'] is defined
+        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
+
+- name: Updating of storpool_iolatmon service on selected nodes
+  hosts: storpool_iolatmon
   gather_subset: 'min'
   ignore_unreachable: true
   vars_files:
     - vars/main.yml
   tasks:
-    - name: Populate service facts
-      service_facts:
-
-    - name: Ensure "{{ ansible_env.HOME }}/update-iolatmon" directory exists
+    - name: Ensure "{{ ansible_user_dir }}/update-iolatmon" directory exists
       file:
-        path: "{{ ansible_env.HOME }}/update-iolatmon"
+        path: "{{ ansible_user_dir }}/update-iolatmon"
         state: directory
       register: ensure_dir_result
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - ansible_env is defined
-        - ansible_env.HOME is defined
 
     - name: Extract storpool_iolatmon archive
       unarchive:
         src: "{{ storpool_iolatmon_path }}"
         remote_src: false
-        dest: "{{ ansible_env.HOME }}/update-iolatmon/"
-        owner: "{{ ansible_env.USER }}"
-        group: "{{ ansible_env.USER }}"
+        dest: "{{ ansible_user_dir }}/update-iolatmon/"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
       register: extract_archive_result
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - ensure_dir_result is succeeded
-        - ansible_env is defined
-        - ansible_env.HOME is defined
-        - ansible_env.USER is defined
+      when: ensure_dir_result is succeeded
 
     - name: Install storpool_iolatmon
-      shell: "{{ ansible_env.HOME }}/update-iolatmon/storpool_iolatmon/install.sh"
+      shell: "{{ ansible_user_dir }}/update-iolatmon/storpool_iolatmon/install.sh"
       register: install_result
       changed_when: false
       become: "{{ ansible_effective_user_id != 0 }}"
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - extract_archive_result is succeeded
-        - ansible_env is defined
-        - ansible_env.HOME is defined
+      when: extract_archive_result is succeeded
 
     - name: Run "/usr/sbin/storpool_iolatmond --volumes-report" command
       command: /usr/sbin/storpool_iolatmond --volumes-report
       changed_when: false
       register: volumes_report_result
       become: "{{ ansible_effective_user_id != 0 }}"
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - install_result is succeeded
+      when: install_result is succeeded
 
     - name: Show volumes report
       debug:
         var: volumes_report_result.stdout
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - volumes_report_result is succeeded
+      when: volumes_report_result is succeeded
 
     - name: Confirm volumes creation (if any) by script above and start of storpool_iolatmon service
       pause:
         prompt: "\nPlease, confirm\n\nPress Enter to Confirm\nor Ctrl-C,A to Refuse and Abort"
-      delegate_to: localhost
 
     - name: Create volumes from volumes report (if any)
       shell: |
@@ -83,18 +69,12 @@
       changed_when: false
       register: volumes_creation_result
       become: "{{ ansible_effective_user_id != 0 }}"
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - volumes_report_result is succeeded
+      when: volumes_report_result is succeeded
 
     - name: Start storpool_iolatmon
       service:
         name: storpool_iolatmon
         enabled: true
-        state: started
+        state: restarted
       become: "{{ ansible_effective_user_id != 0 }}"
-      when:
-        - ansible_facts.services['storpool_iolatmon.service'] is defined
-        - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
-        - volumes_creation_result is succeeded
+      when: volumes_creation_result is succeeded
