@@ -3,7 +3,6 @@
 - name: Selection of nodes with storpool_iolatmon service enabled
   hosts: storpool
   gather_subset: 'min'
-  ignore_unreachable: true
   tasks:
     - name: Populate service facts
       service_facts:
@@ -14,13 +13,27 @@
         groups:
           - storpool_iolatmon
       when:
+        - groups['storpool_iolatmon'] is not defined
         - ansible_facts.services['storpool_iolatmon.service'] is defined
         - ansible_facts.services['storpool_iolatmon.service'].status == 'enabled'
+
+- name: Check of storpool_iolatmon host group
+  hosts: storpool
+  gather_facts: false
+  tasks:
+    - name: Add first host to group 'storpool_iolatmon' if group is empty 
+      add_host:
+        name: "{{ inventory_hostname }}"
+        groups:
+          - storpool_iolatmon
+        delegate_to: localhost
+        run_once: true
+      when:
+        - groups['storpool_iolatmon'] is not defined
 
 - name: Updating of storpool_iolatmon service on selected nodes
   hosts: storpool_iolatmon
   gather_subset: 'min'
-  ignore_unreachable: true
   vars_files:
     - vars/main.yml
   tasks:
