@@ -26,7 +26,6 @@
         name: "{{ inventory_hostname }}"
         groups:
           - storpool_iolatmon
-        delegate_to: localhost
         run_once: true
       when:
         - groups['storpool_iolatmon'] is not defined
