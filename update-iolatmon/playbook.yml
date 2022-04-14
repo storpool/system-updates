@@ -53,7 +53,9 @@
       when: ensure_dir_not_exists is succeeded
 
     - name: Install storpool_iolatmon
-      shell: "{{ ansible_user_dir }}/storpool_iolatmon/install.sh"
+      shell: 
+        cmd: "{{ ansible_user_dir }}/storpool_iolatmon/install.sh"
+        chdir: "{{ ansible_user_dir }}/storpool_iolatmon/"
       register: install_result
       changed_when: false
       become: "{{ ansible_effective_user_id != 0 }}"
