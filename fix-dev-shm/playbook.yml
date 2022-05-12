@@ -10,9 +10,9 @@
   gather_subset: 'min'
   ignore_errors: true
   ignore_unreachable: true
-  become: "{{ ansible_effective_user_id != 0 }}"
   tasks:
     - name: Add/Update shmfs entry in fstab
+      become: "{{ ansible_effective_user_id != 0 }}"
       mount:
         name: /dev/shm
         src: none
@@ -22,6 +22,7 @@
       register: fstab_result
     
     - name: Ensure "{{ ansible_env.HOME }}/fix-dev-shm" directory exists
+      become: "{{ ansible_effective_user_id != 0 }}"
       file:
         path: "{{ ansible_env.HOME }}/fix-dev-shm"
         state: directory
@@ -33,6 +34,7 @@
         - fstab_result is succeeded
 
     - name: Copy fix-dev-shm script
+      become: "{{ ansible_effective_user_id != 0 }}"
       copy:
         src: files/fix-dev-shm.sh
         dest: "{{ ansible_env.HOME }}/fix-dev-shm/fix-dev-shm.sh"
@@ -46,6 +48,7 @@
 
     - name: Run fix-dev-shm script
       command: "{{ ansible_env.HOME }}/fix-dev-shm/fix-dev-shm.sh"
+      become: "{{ ansible_effective_user_id != 0 }}"
       changed_when: false
       when:
         - ansible_env is defined
