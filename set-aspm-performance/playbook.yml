@@ -1,0 +1,35 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Gather localhost's facts
+  hosts: localhost
+  gather_subset: 'min'
+  tasks: []
+
+- name: Ensure PCIe ASPM performance policy is set on boot
+  hosts: storpool
+  gather_subset: 'min'
+  ignore_unreachable: true
+  tasks:
+    - name: Check that /etc/rc.local exists
+      stat:
+        path: /etc/rc.local
+      register: rc_local_stat
+
+    - name: Assert that /etc/rc.local exists on this host
+      assert:
+        that:
+          - rc_local_stat.stat is defined
+          - rc_local_stat.stat.exists
+        fail_msg: "/etc/rc.local is missing on {{ inventory_hostname }} - this immunization expects it to be present"
+
+    - name: Ensure PCIe ASPM performance policy line in /etc/rc.local
+      lineinfile:
+        path: /etc/rc.local
+        line: "/usr/bin/echo performance > /sys/module/pcie_aspm/parameters/policy 2> /dev/null || true; # disable sleep states for all PCIe links"
+        regexp: '^\s*/usr/bin/echo\s+performance\s*>\s*/sys/module/pcie_aspm/parameters/policy\b'
+        insertbefore: '^exit 0\s*$'
+        state: present
+      become: "{{ ansible_effective_user_id != 0 }}"
+
+  tags:
+    - set-aspm-performance
