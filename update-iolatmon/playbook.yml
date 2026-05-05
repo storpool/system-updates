@@ -71,11 +71,15 @@
     - name: Show volumes report
       debug:
         var: volumes_report_result.stdout
-      when: volumes_report_result is succeeded
+      when:
+        - volumes_report_result is succeeded
+        - interactive_mode
 
     - name: Confirm volumes creation (if any) by script above and start of storpool_iolatmon service
       pause:
         prompt: "\nPlease, confirm\n\nPress Enter to Confirm\nor Ctrl-C,A to Refuse and Abort"
+      when:
+        - interactive_mode
 
     - name: Create volumes from volumes report (if any)
       shell: |
