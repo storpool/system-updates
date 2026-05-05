@@ -5,7 +5,7 @@
   gather_subset: 'min'
   tasks: []
 
-- name: Ensure PCIe ASPM performance policy is set on boot
+- name: Ensure PCIe ASPM performance policy is set on boot and applied now
   hosts: storpool
   gather_subset: 'min'
   ignore_unreachable: true
@@ -29,6 +29,11 @@
         regexp: '^\s*/usr/bin/echo\s+performance\s*>\s*/sys/module/pcie_aspm/parameters/policy\b'
         insertbefore: '^exit 0\s*$'
         state: present
+      become: "{{ ansible_effective_user_id != 0 }}"
+
+    - name: Apply PCIe ASPM performance policy now
+      shell: /usr/bin/echo performance > /sys/module/pcie_aspm/parameters/policy 2> /dev/null || true
+      changed_when: false
       become: "{{ ansible_effective_user_id != 0 }}"
 
   tags:
